@@ -19,6 +19,15 @@ struct Header {
     released: String,
 }
 
+#[derive(Debug)]
+struct AdditionalHeader {
+    flags: u16,
+    start_page: u8,
+    page_length: u8,
+    second_sid_address: u8,
+    third_sid_address: u8,
+}
+
 fn main() -> std::io::Result<()> {
     if let Some(file_name) = env::args().nth(1) {
         println!("File name: {}", file_name);
@@ -44,6 +53,17 @@ fn main() -> std::io::Result<()> {
             released: String::from_utf8(buffer[86..118].to_vec()).unwrap(),
         };
         println!("{:?}", header);
+
+        if header.version > 1 {
+            let header2 = AdditionalHeader {
+                flags: BigEndian::read_u16(&buffer[118..134]),
+                start_page: buffer[134],
+                page_length: buffer[135],
+                second_sid_address: buffer[136],
+                third_sid_address: buffer[137],
+            };
+            println!("{:?}", header2)
+        }
     }
     Ok(())
 }
