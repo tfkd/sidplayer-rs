@@ -2,6 +2,7 @@ use std::env;
 use std::fs::File;
 use std::io::prelude::*;
 use byteorder::{ByteOrder, BigEndian};
+use resid::{ChipModel, Sid};
 
 #[derive(Debug)]
 struct Header {
@@ -27,6 +28,18 @@ struct AdditionalHeader {
     second_sid_address: u8,
     third_sid_address: u8,
 }
+
+static SID_DATA: [u16; 51] = [
+    25, 177, 250, 28, 214, 250,
+    25, 177, 250, 25, 177, 250,
+    25, 177, 125, 28, 214, 125,
+    32, 94, 750, 25, 177, 250,
+    28, 214, 250, 19, 63, 250,
+    19, 63, 250, 19, 63, 250,
+    21, 154, 63, 24, 63, 63,
+    25, 177, 250, 24, 63, 125,
+    19, 63, 250,
+];
 
 fn main() -> std::io::Result<()> {
     if let Some(file_name) = env::args().nth(1) {
@@ -64,6 +77,26 @@ fn main() -> std::io::Result<()> {
             };
             println!("{:?}", header2)
         }
+
+        let mut sid = Sid::new(ChipModel::Mos6581);
+        sid.write(0x05, 0x09);
+        sid.write(0x06, 0x00);
+        sid.write(0x06, 0x0f);
+        let mut i = 0;
+        while i < SID_DATA.len() {
+            sid.write(0x01, SID_DATA[i + 0] as u8);
+            sid.write(0x00, SID_DATA[i + 1] as u8);
+            sid.write(0x00, 0x21);
+            for _j in 0..SID_DATA[i + 2] {
+                sid.clock_delta(22);
+            }
+            sid.write(0x00, 0x20);
+            for _j in 0..50 {
+                sid.clock_delta(22);
+            }
+            i += 3;
+        }
+        println!("{:?}", sid.read_state());
     }
     Ok(())
 }
